@@ -14,7 +14,7 @@ export default function ExpenseTable({ items, onDelete, onQuickEdit }) {
               <td>₹{e.amount}</td>
               <td>{e.date}</td>
               <td><span className="badge">{e.category}</span></td>
-              <td style={{display:'flex',gap:8}}>
+              <td style={{display:'flex', gap:8}}>
                 <button onClick={() => onQuickEdit(e)}>Edit</button>
                 <button onClick={() => onDelete(e.id)}>🗑️</button>
               </td>
