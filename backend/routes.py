@@ -1,70 +1,111 @@
-# backend/routes.py
 from flask import Blueprint, request, jsonify
 from db import SessionLocal
 from models import Expense
 from util import expense_to_dict
 from schemas import parse_expense_payload
 from sqlalchemy import extract, func, or_
+from flask_jwt_extended import jwt_required, get_jwt_identity
+import logging
 
+logger = logging.getLogger(__name__)
 
 api = Blueprint("api", __name__)
 
+
+
 @api.get("/expenses")
+@jwt_required(optional=True)   # allow optional for demo (change to required() later)
 def list_expenses():
-    """
-    List expenses with optional filters:
-      - q: search in title/category (case-insensitive)
-      - from, to: date range (YYYY-MM-DD)
-      - page, page_size: pagination
-    """
-    s = SessionLocal()
-    qset = s.query(Expense)
+    session = SessionLocal()
+    try:
+        uid = get_jwt_identity()  # None if not logged in
+        # parse pagination & filters (keep your defensive parsing)
+        q_param = request.args.get("q", type=str)
+        date_from = request.args.get("from", type=str)
+        date_to = request.args.get("to", type=str)
+        page = int(request.args.get("page", 1))
+        page_size = int(request.args.get("page_size", 10))
 
-    q = request.args.get("q", type=str)
-    if q:
-        q_lower = f"%{q.lower()}%"
-        qset = qset.filter(
-            or_(func.lower(Expense.title).like(q_lower),
-                func.lower(Expense.category).like(q_lower))
-        )
+        q = session.query(Expense)
 
-    date_from = request.args.get("from")
-    date_to = request.args.get("to")
-    if date_from:
-        qset = qset.filter(Expense.date >= date_from)
-    if date_to:
-        qset = qset.filter(Expense.date <= date_to)
+        if uid:
+            try:
+                uid_int = int(uid)
+            except:
+                uid_int = uid
+            q = q.filter(Expense.user_id == uid_int)
+        else:
+            # not logged in -> return nothing OR global (admin) items
+            # Option A (hide all): q = q.filter(False)
+            # Option B (show admin/global): q = q.filter(Expense.user_id == None)
+            # We'll show admin-only by showing user_id IS NULL? If you assigned admin, use admin id
+            q = q.filter(Expense.user_id == None)
 
-    # default sort: newest first
-    qset = qset.order_by(Expense.date.desc(), Expense.id.desc())
+        if q_param:
+            q_lower = f"%{q_param.lower()}%"
+            q = q.filter(
+                or_(
+                    func.lower(Expense.title).like(q_lower),
+                    func.lower(Expense.category).like(q_lower),
+                )
+            )
 
-    page = request.args.get("page", default=1, type=int)
-    page_size = request.args.get("page_size", default=20, type=int)
-    page_size = min(max(page_size, 1), 100)
+        if date_from:
+            q = q.filter(Expense.date >= date_from)
+        if date_to:
+            q = q.filter(Expense.date <= date_to)
 
-    items = qset.offset((page - 1) * page_size).limit(page_size).all()
-    data = [expense_to_dict(e) for e in items]
-    s.close()
+        q = q.order_by(Expense.date.desc(), Expense.id.desc())
+        page = max(1, page)
+        page_size = min(max(1, page_size), 100)
+        items = q.offset((page - 1) * page_size).limit(page_size).all()
+        data = [expense_to_dict(e) for e in items]
+        return jsonify(data), 200
+    except Exception as e:
+        import logging; logging.exception("list_expenses failed")
+        return jsonify({"error": "internal_server_error", "details": str(e)}), 500
+    finally:
+        session.close()
+
+
     return jsonify(data), 200
 
+
+# Defensive and user-aware create_expense
 @api.post("/expenses")
+@jwt_required(optional=True)
 def create_expense():
-    """Create an expense after validating input."""
-    s = SessionLocal()
-    body = request.get_json() or {}
-    parsed, errors = parse_expense_payload(body)
-    if errors:
-        s.close()
-        return jsonify({"errors": errors}), 400
+    session = SessionLocal()
+    try:
+        body = request.get_json(silent=True)
+        if body is None:
+            return jsonify({"errors": ["Invalid or missing JSON body"]}), 400
+        parsed, errors = parse_expense_payload(body)
+        if errors:
+            return jsonify({"errors": errors}), 400
 
-    e = Expense(**parsed)
-    s.add(e)
-    s.commit()
-    s.refresh(e)
-    data = expense_to_dict(e)
-    s.close()
-    return jsonify(data), 201
+        user_id = get_jwt_identity()
+        # user_id will be string (we cast to int)
+        try:
+            user_id = int(user_id)
+        except Exception:
+            # if we stored as string, but DB expects int, convert
+            pass
 
+        e = Expense(**parsed)
+        e.user_id = user_id
+        session.add(e)
+        session.commit()
+        session.refresh(e)
+        data = expense_to_dict(e)
+        return jsonify(data), 201
+    except Exception as exc:
+        session.rollback()
+        import logging; logging.exception("create_expense failed")
+        return jsonify({"error": "internal_server_error", "details": str(exc)}), 500
+    finally:
+        session.close()
+        
 
 @api.put("/expenses/<int:expense_id>")
 def update_expense(expense_id: int):
@@ -117,56 +158,81 @@ def delete_expense(expense_id: int):
 
 
 @api.get("/summary/month")
+@jwt_required(optional=False)  # require login
 def summary_month():
-    """
-    Total spent in a given month.
-    Defaults to the database's current month if year/month are not provided.
-    Query: /summary/month?year=2025&month=11
-    """
-    s = SessionLocal()
-    year = request.args.get("year", type=int)
-    month = request.args.get("month", type=int)
+    session = SessionLocal()
+    try:
+        uid = get_jwt_identity()
+        if uid is None:
+            return jsonify({"error": "unauthorized"}), 401
+        try:
+            uid_int = int(uid)
+        except Exception:
+            uid_int = uid
 
-    q = s.query(func.coalesce(func.sum(Expense.amount), 0))
-    if year and month:
-        q = q.filter(
-            extract("year", Expense.date) == year,
-            extract("month", Expense.date) == month
-        )
-    else:
-        # Use DB clock for consistency
-        q = q.filter(
-            extract("year", Expense.date) == extract("year", func.current_date()),
-            extract("month", Expense.date) == extract("month", func.current_date())
-        )
+        year = request.args.get("year", type=int)
+        month = request.args.get("month", type=int)
+        if not year or not month:
+            return jsonify({"error": "year and month required"}), 400
 
-    total = q.scalar()  # Decimal or 0
-    s.close()
-    return {"total": str(total)}, 200
+        # calculate first and last day strings
+        from datetime import date, timedelta
+        start = date(year, month, 1)
+        # compute last day of month
+        if month == 12:
+            end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end = date(year, month + 1, 1) - timedelta(days=1)
+
+        total_q = session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+            Expense.user_id == uid_int,
+            Expense.date >= start,
+            Expense.date <= end
+        )
+        total = total_q.scalar() or 0
+        return jsonify({"year": year, "month": month, "total": float(total)}), 200
+    except Exception as e:
+        import logging; logging.exception("summary_month failed")
+        return jsonify({"error": "internal_server_error", "details": str(e)}), 500
+    finally:
+        session.close()
 
 
 @api.get("/summary/by_category")
+@jwt_required(optional=False)   # require login for summaries
 def summary_by_category():
-    """
-    Sum of expenses grouped by category.
-    Optional range filters: ?from=YYYY-MM-DD&to=YYYY-MM-DD
-    """
-    s = SessionLocal()
-    date_from = request.args.get("from")
-    date_to = request.args.get("to")
+    session = SessionLocal()
+    try:
+        uid = get_jwt_identity()
+        if uid is None:
+            return jsonify({"error": "unauthorized"}), 401
+        try:
+            uid_int = int(uid)
+        except Exception:
+            uid_int = uid
 
-    q = s.query(
-        Expense.category,
-        func.coalesce(func.sum(Expense.amount), 0).label("total")
-    )
-    if date_from:
-        q = q.filter(Expense.date >= date_from)
-    if date_to:
-        q = q.filter(Expense.date <= date_to)
+        date_from = request.args.get("from", type=str)
+        date_to = request.args.get("to", type=str)
 
-    q = q.group_by(Expense.category).order_by(func.sum(Expense.amount).desc())
-    rows = q.all()
-    s.close()
+        q = session.query(Expense.category, func.coalesce(func.sum(Expense.amount), 0).label("total"))
+        q = q.filter(Expense.user_id == uid_int)
+
+        if date_from:
+            q = q.filter(Expense.date >= date_from)
+        if date_to:
+            q = q.filter(Expense.date <= date_to)
+
+        q = q.group_by(Expense.category)
+        rows = q.all()
+        result = [{"category": r[0], "total": float(r[1])} for r in rows]
+        return jsonify(result), 200
+    except Exception as e:
+        import logging; logging.exception("summary_by_category failed")
+        return jsonify({"error": "internal_server_error", "details": str(e)}), 500
+    finally:
+        session.close()
+
+
 
     # Return strings for currency safety
     return [{"category": r[0], "total": str(r[1])} for r in rows], 200
