@@ -18,3 +18,106 @@ body {
 }
 
 .actions { display:flex; gap:6px; }
+
+:root {
+  --bg: #f6f8fb;
+  --card: #fff;
+  --accent: #2563eb;
+  --danger: #ef4444;
+  --radius: 12px;
+  --max-width: 950px;
+  --gap: 16px;
+  --font: "Inter", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: #222;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 30px auto;
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  margin-bottom: var(--gap);
+  padding: 16px;
+  box-shadow: 0 4px 18px rgba(16,24,40,0.06);
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: var(--accent);
+}
+
+button {
+  font-family: inherit;
+  border-radius: 8px;
+  border: none;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  margin: 0 4px 0 0;
+}
+button:active { opacity: 0.8; }
+button.danger { background: var(--danger); }
+
+input, select {
+  width: 100%;
+  border-radius: 7px;
+  border: 1px solid #e3e5ea;
+  padding: 9px 10px;
+  font-size: 15px;
+  margin: 6px 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 15px;
+}
+.table th, .table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e3e5ea;
+  text-align: left;
+}
+.table th { background: #f1f5fc; color: #2563eb; font-weight: 600; }
+.table td.amt { font-weight: 700; color: #0b934c; }
+.table tr:hover td { background: #f7faff; }
+
+.row { display: flex; gap: 10px; margin-bottom: 8px; }
+.row .col { flex: 1; }
+
+.actions { display: flex; gap: 8px; }
+.pager { display: flex; gap: 8px; align-items: center; }
+
+.empty {
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  margin: 16px;
+}
+
+.muted { color: #888; font-size: 13px; }
+.float-right { margin-left: auto; }
+
+@media (max-width: 700px) {
+  .container { padding: 0 3px; }
+  .row { flex-direction: column; }
+}

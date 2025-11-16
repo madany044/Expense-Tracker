@@ -1,35 +1,50 @@
+// frontend/src/ExpenseForm.jsx
 import { useState } from "react";
 
 export default function ExpenseForm({ onCreate }) {
-  const [form, setForm] = useState({
-    title: "",
-    amount: "",
-    date: "",
-    category: ""
-  });
-  const [err, setErr] = useState("");
+  const [form, setForm] = useState({ title: "", amount: "", date: "", category: "" });
+  const [loading, setLoading] = useState(false);
 
-  async function submit(e) {
+  function handleChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    setErr("");
-    if (!form.title.trim() || !form.amount || !form.date || !form.category.trim()) {
-      setErr("Please fill all fields.");
-      return;
+    setLoading(true);
+
+    // === Debug: show what's being sent (inspect in console) ===
+    console.log("[ExpenseForm] sending payload:", form);
+
+    try {
+      // call parent handler
+      await onCreate(form);
+      // reset
+      setForm({ title: "", amount: "", date: "", category: "" });
+    } catch (err) {
+      // show friendly message + server details when available
+      console.error("ExpenseForm submit error:", err);
+      const serverData = err?.response?.data;
+      if (serverData) {
+        // show readable server message (may be object or string)
+        alert("Server rejected request:\n" + (typeof serverData === "string" ? serverData : JSON.stringify(serverData)));
+      } else {
+        alert("Request failed: " + (err.message || "unknown error"));
+      }
+    } finally {
+      setLoading(false);
     }
-    await onCreate(form);
-    setForm({ title: "", amount: "", date: "", category: "" });
   }
 
   return (
-    <form onSubmit={submit} className="card" style={{ marginBottom: 16 }}>
+    <form className="card" onSubmit={handleSubmit}>
       <h3>Add Expense</h3>
-      {err && <div style={{ color: "crimson", marginBottom: 8 }}>{err}</div>}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input placeholder="Title" value={form.title} onChange={e=>setForm({ ...form, title: e.target.value })} />
-        <input placeholder="Amount" type="number" step="0.01" value={form.amount} onChange={e=>setForm({ ...form, amount: e.target.value })} />
-        <input type="date" value={form.date} onChange={e=>setForm({ ...form, date: e.target.value })} />
-        <input placeholder="Category" value={form.category} onChange={e=>setForm({ ...form, category: e.target.value })} />
-        <button className="primary">Add</button>
+      <div className="row">
+        <input name="title" placeholder="Title" value={form.title} onChange={handleChange} required />
+        <input name="amount" placeholder="Amount" value={form.amount} onChange={handleChange} required />
+        <input name="date" type="date" value={form.date} onChange={handleChange} required />
+        <input name="category" placeholder="Category" value={form.category} onChange={handleChange} required />
+        <button type="submit" disabled={loading}>{loading ? "Adding…" : "Add"}</button>
       </div>
     </form>
   );
