@@ -20,23 +20,29 @@ Track, manage, and visualize your expenses easily with this fullstack web app.
 ## Installation
 
 ### 1. Clone the repo
-
-git clone https://github.com/madany044/Expense-Tracker.git
-cd Expense-Tracker
-
+```
+ git clone https://github.com/madany044/Expense-Tracker.git
+ cd Expense-Tracker
+```
 ### 2. Backend Setup
-
-cd backend
-pip install -r requirements.txt
-python app.py
-
+```
+ cd backend
+ pip install -r requirements.txt
+ python app.py
+```
 ### 3. Frontend Setup
+```
+ cd frontend
+ npm install
+ npm start
+```
+<div align="center">
+  
+## Designed & Developed By 
+ **Email**: madanmadany2004@gmail.com 
 
-cd frontend
-npm install
-npm start
 
-
+</div>
 
 
 
