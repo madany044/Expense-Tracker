@@ -20,7 +20,7 @@ export default function ExpenseForm({ onCreate }) {
       // call parent handler
       await onCreate(form);
       // reset
-      setForm({ title: "", amount: "", date: "", category: "" });
+      setForm({ subject: "", amount: "", date: "", category: "" });
     } catch (err) {
       // show friendly message + server details when available
       console.error("ExpenseForm submit error:", err);
