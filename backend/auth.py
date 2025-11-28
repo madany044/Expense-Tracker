@@ -38,9 +38,9 @@ def login():
     if not u or not check_password_hash(u.password_hash, password):
         return jsonify({"error": "invalid credentials"}), 401
     try:
-        # ensure subject is string to avoid pyjwt subject errors
+        
         token = create_access_token(identity=str(u.id))
     except Exception as ex:
-        # helpful debug info in dev
+        
         return jsonify({"error": "token_creation_failed", "details": str(ex)}), 500
     return jsonify({"access_token": token, "user": {"id": u.id, "email": u.email, "name": u.name}})

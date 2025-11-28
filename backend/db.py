@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # loads .env in development
+load_dotenv()  
 
 Base = declarative_base()
 
@@ -18,5 +18,5 @@ SessionLocal = scoped_session(
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)  # allow local React dev server for later
+    CORS(app)  
     return app

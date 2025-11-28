@@ -14,12 +14,12 @@ api = Blueprint("api", __name__)
 
 
 @api.get("/expenses")
-@jwt_required(optional=True)   # allow optional for demo (change to required() later)
+@jwt_required(optional=True)   
 def list_expenses():
     session = SessionLocal()
     try:
-        uid = get_jwt_identity()  # None if not logged in
-        # parse pagination & filters (keep your defensive parsing)
+        uid = get_jwt_identity()  
+     
         q_param = request.args.get("q", type=str)
         date_from = request.args.get("from", type=str)
         date_to = request.args.get("to", type=str)
@@ -35,10 +35,7 @@ def list_expenses():
                 uid_int = uid
             q = q.filter(Expense.user_id == uid_int)
         else:
-            # not logged in -> return nothing OR global (admin) items
-            # Option A (hide all): q = q.filter(False)
-            # Option B (show admin/global): q = q.filter(Expense.user_id == None)
-            # We'll show admin-only by showing user_id IS NULL? If you assigned admin, use admin id
+   
             q = q.filter(Expense.user_id == None)
 
         if q_param:
@@ -71,7 +68,7 @@ def list_expenses():
     return jsonify(data), 200
 
 
-# Defensive and user-aware create_expense
+
 @api.post("/expenses")
 @jwt_required(optional=True)
 def create_expense():
@@ -85,11 +82,11 @@ def create_expense():
             return jsonify({"errors": errors}), 400
 
         user_id = get_jwt_identity()
-        # user_id will be string (we cast to int)
+        
         try:
             user_id = int(user_id)
         except Exception:
-            # if we stored as string, but DB expects int, convert
+          
             pass
 
         e = Expense(**parsed)
@@ -118,11 +115,11 @@ def update_expense(expense_id: int):
 
     body = request.get_json() or {}
 
-    # Build a merged payload so we can reuse the same validator
+    
     merged = {
         "title": body.get("title", e.title),
-        "amount": body.get("amount", str(e.amount)),      # keep as string for validator
-        "date": body.get("date", e.date.isoformat()),     # ISO date string
+        "amount": body.get("amount", str(e.amount)),     
+        "date": body.get("date", e.date.isoformat()),    
         "category": body.get("category", e.category),
     }
 
@@ -131,7 +128,7 @@ def update_expense(expense_id: int):
         s.close()
         return jsonify({"errors": errors}), 400
 
-    # Apply updates
+    
     for k, v in parsed.items():
         setattr(e, k, v)
 
@@ -158,7 +155,7 @@ def delete_expense(expense_id: int):
 
 
 @api.get("/summary/month")
-@jwt_required(optional=False)  # require login
+@jwt_required(optional=False)  
 def summary_month():
     session = SessionLocal()
     try:
@@ -175,10 +172,10 @@ def summary_month():
         if not year or not month:
             return jsonify({"error": "year and month required"}), 400
 
-        # calculate first and last day strings
+     
         from datetime import date, timedelta
         start = date(year, month, 1)
-        # compute last day of month
+    
         if month == 12:
             end = date(year + 1, 1, 1) - timedelta(days=1)
         else:
@@ -199,7 +196,7 @@ def summary_month():
 
 
 @api.get("/summary/by_category")
-@jwt_required(optional=False)   # require login for summaries
+@jwt_required(optional=False)   
 def summary_by_category():
     session = SessionLocal()
     try:
@@ -234,5 +231,5 @@ def summary_by_category():
 
 
 
-    # Return strings for currency safety
+
     return [{"category": r[0], "total": str(r[1])} for r in rows], 200

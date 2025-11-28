@@ -1,4 +1,4 @@
-// frontend/src/Register.jsx
+
 import { useState } from "react";
 import { register } from "./api";
 

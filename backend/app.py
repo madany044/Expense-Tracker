@@ -12,17 +12,17 @@ app = create_app()
 
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}})
 
-# === Defensive fallback: ensure header on every response (dev only) ===
+
 @app.after_request
 def _add_cors_headers(response):
-    # dev-only: allow any origin so browser won't block requests during development
+   
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers.setdefault("Access-Control-Allow-Headers", "Content-Type,Authorization")
     response.headers.setdefault("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
     return response
 
 
-# ensure CORS is explicitly enabled for API routes
+
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}})
 
 app.register_blueprint(api, url_prefix="/api")

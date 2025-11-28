@@ -4,7 +4,7 @@
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { border-top: 1px solid #eee; padding: 8px; }
 .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f3f4f6; }
-.container, .card { min-width: 0; }   /* allows correct width calc inside flex layouts */
+.container, .card { min-width: 0; }   
 
 body {
   display: flex;

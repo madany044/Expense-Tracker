@@ -1,4 +1,4 @@
-// frontend/src/ExpenseForm.jsx
+
 import { useState } from "react";
 
 export default function ExpenseForm({ onCreate }) {
@@ -13,20 +13,20 @@ export default function ExpenseForm({ onCreate }) {
     e.preventDefault();
     setLoading(true);
 
-    // === Debug: show what's being sent (inspect in console) ===
+    
     console.log("[ExpenseForm] sending payload:", form);
 
     try {
-      // call parent handler
+      
       await onCreate(form);
-      // reset
+      
       setForm({ subject: "", amount: "", date: "", category: "" });
     } catch (err) {
-      // show friendly message + server details when available
+      
       console.error("ExpenseForm submit error:", err);
       const serverData = err?.response?.data;
       if (serverData) {
-        // show readable server message (may be object or string)
+        
         alert("Server rejected request:\n" + (typeof serverData === "string" ? serverData : JSON.stringify(serverData)));
       } else {
         alert("Request failed: " + (err.message || "unknown error"));

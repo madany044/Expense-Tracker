@@ -1,4 +1,4 @@
-// frontend/src/Charts.jsx
+
 import { useEffect, useState } from "react";
 import { summaryMonth, byCategory } from "./api";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -14,7 +14,7 @@ export default function Charts({ fromDate, toDate, currentUser }) {
     let mounted = true;
     (async () => {
       if (!currentUser) {
-        // if not logged in, clear chart (you show login first so this is safe)
+      
         setCategoryData([]);
         setMonthTotal("0");
         return;

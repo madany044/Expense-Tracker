@@ -1,4 +1,4 @@
-# backend/util.py
+
 from decimal import Decimal
 
 def expense_to_dict(e):
