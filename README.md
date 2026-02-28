@@ -38,7 +38,7 @@ Track, manage, and visualize your expenses easily with this fullstack web app.
 ```
 <div align="center">
   
-## Designed & Developed By 
+## Designed & Developed By Madan Y
  **Email**: madanmadany2004@gmail.com 
 
 
